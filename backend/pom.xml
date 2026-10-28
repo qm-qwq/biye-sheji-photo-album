@@ -62,6 +62,12 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- 仅引入加密模块，不引入完整的 Spring Security -->
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-crypto</artifactId>
+        </dependency>
+
     </dependencies>
 
     <build>
