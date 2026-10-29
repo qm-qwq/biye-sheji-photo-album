@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <title>我的相册</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </head>
 <body class="bg-light">
 
@@ -22,7 +23,7 @@
 <div class="container mt-5">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h4>我的相册</h4>
-        <button class="btn btn-success" onclick="alert('新建相册功能将在D7完成')">+ 新建相册</button>
+        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#createAlbumModal">+ 新建相册</button>
     </div>
 
     <!-- 相册列表容器 -->
@@ -35,12 +36,62 @@
         <h5>空空如也，快去新建一个相册吧！</h5>
     </div>
 </div>
-
+<!--Bootstrap前端页面-->
+<!-- 新建相册的弹窗 -->
+<div class="modal fade" id="createAlbumModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">新建相册</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">相册名称</label>
+                    <input type="text" class="form-control" id="newAlbumName" placeholder="例如：毕业旅行">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">相册描述</label>
+                    <input type="text" class="form-control" id="newAlbumDesc" placeholder="选填">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="submitCreateAlbum()">创建</button>
+            </div>
+        </div>
+    </div>
+</div>
 <script>
     // 页面加载时立即执行
     window.onload = function() {
         loadAlbums();
     };
+        function submitCreateAlbum() {
+        const name = document.getElementById('newAlbumName').value;
+        const desc = document.getElementById('newAlbumDesc').value;
+
+        if (!name) { alert("请输入相册名"); return; }
+
+        fetch('/api/albums', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: name, description: desc })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.code === 200) {
+                // 成功的话，关掉弹窗，重新加载列表
+                const modal = bootstrap.Modal.getInstance(document.getElementById('createAlbumModal'));
+                modal.hide();
+                document.getElementById('newAlbumName').value = '';
+                document.getElementById('newAlbumDesc').value = '';
+                loadAlbums();
+            } else {
+                alert("创建失败：" + data.msg);
+            }
+        });
+    }
 
     function loadAlbums() {
         // 向后端请求相册列表
