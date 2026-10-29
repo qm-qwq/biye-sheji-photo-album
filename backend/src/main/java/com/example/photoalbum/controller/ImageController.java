@@ -92,10 +92,20 @@ public class ImageController {
         // 8. UUID 生成新文件名，防止重名覆盖
         String newFileName = UUID.randomUUID().toString().replace("-", "") + "." + extension;
         File destFile = new File(dirPath + newFileName);
-
+        // 缩略图 UUID 名
+        String thumbName = "thumb_" + newFileName;
+        File thumbFile = new File(dirPath + thumbName);
         try {
             // 保存文件到本地硬盘
             file.transferTo(destFile);
+
+            // 👇 2. 新增：生成缩略图！(宽400，保持比例，质量0.7)
+            net.coobird.thumbnailator.Thumbnails.of(destFile)
+                    .size(400, 400)
+                    .keepAspectRatio(true)
+                    .outputQuality(0.7)
+                    .toFile(thumbFile);
+
         } catch (IOException e) {
             return Result.error("文件保存失败");
         }
