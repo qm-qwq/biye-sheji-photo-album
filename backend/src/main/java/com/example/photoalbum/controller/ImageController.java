@@ -1,6 +1,7 @@
 package com.example.photoalbum.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.photoalbum.common.Result;
 import com.example.photoalbum.entity.Album;
 import com.example.photoalbum.entity.Image;
@@ -12,9 +13,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.imageio.ImageIO;
 import javax.servlet.http.HttpSession;
-import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.time.LocalDateTime;
@@ -32,103 +31,127 @@ public class ImageController {
     @Autowired
     private AlbumMapper albumMapper;
 
-    // 从 application.yml 读取配置的上传路径（咱们暂时写死在本地测试，配置里也可以加）
     @Value("${upload.path:D:/biyesheji/uploads/}")
     private String uploadPath;
 
+    // ================= 1. 图片上传接口（极简版） =================
     @PostMapping("/upload")
     public Result<?> uploadImage(@RequestParam("file") MultipartFile file,
                                  @RequestParam("albumId") Long albumId,
                                  HttpSession session) {
-        // 1. 登录校验
         User user = (User) session.getAttribute("loginUser");
         if (user == null) return Result.error("未登录");
 
-        // 2. 权限校验：这个相册是不是当前用户的？
         Album album = albumMapper.selectById(albumId);
         if (album == null || !album.getUserId().equals(user.getId())) {
             return Result.error("无权向此相册上传图片");
         }
 
-        // 3. 空文件校验
         if (file.isEmpty()) return Result.error("上传文件为空");
+        if (file.getSize() > 10 * 1024 * 1024) return Result.error("文件大小不能超过 10MB");
 
-        // 4. 大小校验 (10MB)
-        if (file.getSize() > 10 * 1024 * 1024) {
-            return Result.error("文件大小不能超过 10MB");
-        }
-
-        // 5. 后缀白名单校验
         String originalFilename = file.getOriginalFilename();
         String extension = originalFilename != null ? originalFilename.substring(originalFilename.lastIndexOf(".") + 1).toLowerCase() : "";
         List<String> allowedExt = Arrays.asList("jpg", "jpeg", "png");
-        if (!allowedExt.contains(extension)) {
-            return Result.error("只允许上传 jpg/png 格式图片");
-        }
+        if (!allowedExt.contains(extension)) return Result.error("只允许上传 jpg/png 格式图片");
 
-        // 6. 核心安全：真实图片校验 & 像素上限 (50MP)
-        BufferedImage bufferedImage;
-        try {
-            bufferedImage = ImageIO.read(file.getInputStream());
-            if (bufferedImage == null) {
-                return Result.error("无效的图片文件（伪图片被拦截）");
-            }
-            long pixels = (long) bufferedImage.getWidth() * bufferedImage.getHeight();
-            if (pixels > 50000000L) {
-                return Result.error("图片像素过大，不能超过 5000 万像素");
-            }
-        } catch (IOException e) {
-            return Result.error("读取图片失败");
-        }
-
-        // 7. 按 用户ID/年/月 生成落盘目录
         String datePath = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy/MM"));
         String dirPath = uploadPath + user.getId() + "/" + datePath + "/";
         File dir = new File(dirPath);
-        if (!dir.exists()) {
-            dir.mkdirs(); // 如果目录不存在，自动创建
-        }
+        if (!dir.exists()) dir.mkdirs();
 
-        // 8. UUID 生成新文件名，防止重名覆盖
         String newFileName = UUID.randomUUID().toString().replace("-", "") + "." + extension;
         File destFile = new File(dirPath + newFileName);
-        // 缩略图 UUID 名
+
         String thumbName = "thumb_" + newFileName;
         File thumbFile = new File(dirPath + thumbName);
+
         try {
-            // 保存文件到本地硬盘
+            // 保存原图
             file.transferTo(destFile);
 
-            // 👇 2. 新增：生成缩略图！(宽400，保持比例，质量0.7)
+            // 生成缩略图
             net.coobird.thumbnailator.Thumbnails.of(destFile)
                     .size(400, 400)
                     .keepAspectRatio(true)
                     .outputQuality(0.7)
                     .toFile(thumbFile);
-
         } catch (IOException e) {
+            e.printStackTrace();
             return Result.error("文件保存失败");
         }
 
-        // 9. 存入数据库
+        // 存入数据库 (宽高咱们暂时不读了，直接存空，省点事)
         Image image = new Image();
         image.setAlbumId(albumId);
         image.setUserId(user.getId());
         image.setOriginalName(originalFilename);
         image.setFilePath(dirPath + newFileName);
+        image.setThumbPath(dirPath + thumbName);
         image.setFileSize(file.getSize());
         image.setContentType(file.getContentType());
-        image.setWidth(bufferedImage.getWidth());
-        image.setHeight(bufferedImage.getHeight());
         image.setCreatedTime(LocalDateTime.now());
         image.setUpdatedTime(LocalDateTime.now());
-
         imageMapper.insert(image);
 
-        // 10. 相册图片数量 +1
+        // 更新相册图片数量
         album.setImageCount(album.getImageCount() + 1);
         albumMapper.updateById(album);
 
         return Result.success(image);
+    }
+
+    // ================= 2. 图片列表分页查询接口 =================
+    @GetMapping("/list")
+    public Result<?> getImages(@RequestParam Long albumId,
+                               @RequestParam(defaultValue = "1") Integer page,
+                               @RequestParam(defaultValue = "12") Integer size,
+                               HttpSession session) {
+        User user = (User) session.getAttribute("loginUser");
+        if (user == null) return Result.error("未登录");
+
+        Album album = albumMapper.selectById(albumId);
+        if (album == null || !album.getUserId().equals(user.getId())) {
+            return Result.error("无权查看此相册");
+        }
+
+        Page<Image> pageObj = new Page<>(page, size);
+        LambdaQueryWrapper<Image> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Image::getAlbumId, albumId)
+                .orderByDesc(Image::getCreatedTime);
+
+        imageMapper.selectPage(pageObj, wrapper);
+        return Result.success(pageObj);
+    }
+    // ================= 3. 删除图片接口 =================
+    @DeleteMapping("/{id}")
+    public Result<?> deleteImage(@PathVariable Long id, HttpSession session) {
+        User user = (User) session.getAttribute("loginUser");
+        if (user == null) return Result.error("未登录");
+
+        Image image = imageMapper.selectById(id);
+        if (image == null || !image.getUserId().equals(user.getId())) {
+            return Result.error("无权删除此图片");
+        }
+
+        // 1. 逻辑删除数据库记录 (因为有 @TableLogic，自动变成 update is_deleted=1)
+        imageMapper.deleteById(id);
+
+        // 2. 物理删除硬盘上的文件 (原图和缩略图)
+        try {
+            if (image.getFilePath() != null) new File(image.getFilePath()).delete();
+            if (image.getThumbPath() != null) new File(image.getThumbPath()).delete();
+        } catch (Exception e) {
+            System.out.println("删除本地文件失败，但不影响数据库记录删除");
+        }
+
+        // 3. 相册图片数量 - 1
+        Album album = albumMapper.selectById(image.getAlbumId());
+        if (album != null && album.getImageCount() > 0) {
+            album.setImageCount(album.getImageCount() - 1);
+            albumMapper.updateById(album);
+        }
+
+        return Result.success(null);
     }
 }

@@ -114,9 +114,10 @@
                 if (data.code === 200 && data.data.length > 0) {
                     // 有数据，渲染卡片
                     data.data.forEach(album => {
-                        const card = `
+                           const card = `
                             <div class="col-md-3 mb-4">
-                                <div class="card h-100 shadow-sm">
+                                <!--点击跳转-->
+                                <div class="card h-100 shadow-sm" style="cursor: pointer;" onclick="window.location.href='album-detail.html?albumId=${album.id}'">
                                     <div class="card-body">
                                         <h5 class="card-title">${album.name}</h5>
                                         <p class="card-text text-muted">${album.description || '暂无描述'}</p>

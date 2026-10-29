@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>相册详情</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>//弹窗放大
+    <style>
+        /* 设置图片卡片的样式，保持正方形 */
+        .photo-card {
+            aspect-ratio: 1 / 1;
+            object-fit: cover;
+            width: 100%;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .photo-card:hover { transform: scale(1.05); }
+    </style>
+</head>
+<body class="bg-light">
+
+<!-- 导航栏 -->
+<nav class="navbar navbar-dark bg-dark mb-4">
+    <div class="container">
+        <a class="navbar-brand" href="index.html">🔙 返回我的相册</a>
+    </div>
+</nav>
+
+<div class="container">
+    <h3 class="mb-4">相册内的照片</h3>
+
+    <!-- 照片墙容器 -->
+    <div class="row" id="photoList">
+        <!-- 照片将通过 JS 动态渲染到这里 -->
+    </div>
+
+    <!-- 空状态提示 -->
+    <div id="emptyState" class="text-center mt-5 text-muted" style="display: none;">
+        <h5>这个相册里还没有照片哦~</h5>
+    </div>
+
+    <!-- 分页组件 -->
+    <nav aria-label="Page navigation" class="mt-4">
+        <ul class="pagination justify-content-center" id="pagination">
+            <!-- 分页按钮由 JS 渲染 -->
+        </ul>
+    </nav>
+</div>
+
+<script>
+    // 1. 从网址获取 albumId (例如 album-detail.html?albumId=1)
+    const urlParams = new URLSearchParams(window.location.search);
+    const albumId = urlParams.get('albumId');
+    let currentPage = 1; // 当前页码
+
+    if (!albumId) {
+        alert("缺少相册ID！");
+        window.location.href = 'index.html';
+    }
+
+    // 2. 页面加载时请求数据
+    window.onload = function() {
+        loadPhotos(currentPage);
+    };
+
+    function loadPhotos(page) {
+        fetch(`/api/images/list?albumId=${albumId}&page=${page}&size=12`)
+            .then(res => {
+                if (res.status === 401) { window.location.href = 'login.html'; return; }
+                return res.json();
+            })
+            .then(data => {
+                if (!data || data.code !== 200) return;
+
+                const photoList = document.getElementById('photoList');
+                const emptyState = document.getElementById('emptyState');
+                photoList.innerHTML = ''; // 清空
+
+                const records = data.data.records;
+
+                if (records.length === 0) {
+                    emptyState.style.display = 'block';
+                } else {
+                    emptyState.style.display = 'none';
+
+                    // 循环渲染图片
+                    records.forEach(image => {
+                        // 把后端的 D:\biyesheji\... 转成 URL 能访问的 /api/uploads/...
+                        // 假设后端路径是 D:/biyesheji/uploads/1/2026/10/xxx.jpg
+                        // 截取 uploads 后面的部分
+                        let path = image.thumbPath.replace(/\\/g, '/');
+                        let index = path.indexOf('uploads');
+                        let thumbUrl = '/api/' + path.substring(index);
+                        //放大图片
+                            let filePath = image.filePath.replace(/\\/g, '/');
+                            let fileIndex = filePath.indexOf('uploads');
+                            let fileUrl = '/api/' + filePath.substring(fileIndex);
+                        const imgHtml = `
+                        <div class="col-6 col-md-4 col-lg-3 mb-4">
+                            <img src="${thumbUrl}" onclick="openPreview('${fileUrl}', ${image.id})" style="cursor: pointer;" class="photo-card shadow-sm" alt="图片">
+                            </div>
+                             `;
+                            photoList.innerHTML += imgHtml;
+                           });
+
+
+                          let currentDeleteId = null; // 记录当前要删除的图片ID
+
+                    records.forEach(image => {
+                        // 1. 处理缩略图路径
+                        let thumbPath = image.thumbPath ? image.thumbPath.replace(/\\/g, '/') : '';
+                        let thumbUrl = '/api/' + thumbPath.substring(thumbPath.indexOf('uploads'));
+
+                        // 2. 处理原图路径 (大图)
+                        let filePath = image.filePath ? image.filePath.replace(/\\/g, '/') : '';
+                        let fileUrl = '/api/' + filePath.substring(filePath.indexOf('uploads'));
+
+                        const imgHtml = `
+                            <div class="col-6 col-md-4 col-lg-3 mb-4">
+                                <!-- 点击图片时，把原图URL传给 openPreview 函数 -->
+                                <img src="${thumbUrl}" class="photo-card shadow-sm" alt="图片"
+                                     onclick="openPreview('${fileUrl}', ${image.id})">
+                            </div>
+                        `;
+                        photoList.innerHTML += imgHtml;
+                    });
+                }
+
+                // 渲染分页按钮
+                renderPagination(data.data.current, data.data.pages);
+            });
+    }
+
+    // 渲染分页按钮
+    function renderPagination(current, totalPages) {
+        const pagination = document.getElementById('pagination');
+        pagination.innerHTML = '';
+
+        if (totalPages <= 1) return; // 只有一页就不显示分页了
+
+        // 上一页
+        pagination.innerHTML += `<li class="page-item ${current === 1 ? 'disabled' : ''}">
+            <a class="page-link" href="#" onclick="loadPhotos(${current - 1})">上一页</a></li>`;
+
+        // 循环生成页码
+        for (let i = 1; i <= totalPages; i++) {
+            pagination.innerHTML += `<li class="page-item ${current === i ? 'active' : ''}">
+                <a class="page-link" href="#" onclick="loadPhotos(${i})">${i}</a></li>`;
+        }
+
+        // 下一页
+        pagination.innerHTML += `<li class="page-item ${current === totalPages ? 'disabled' : ''}">
+            <a class="page-link" href="#" onclick="loadPhotos(${current + 1})">下一页</a></li>`;
+    }
+        // 打开大图弹窗
+    function openPreview(fileUrl, imageId) {
+        document.getElementById('previewImage').src = fileUrl;
+        // 记住当前点开的是哪张图（为了后续删除）
+        window.currentImageId = imageId;
+        // 显示 Modal
+        const modal = new bootstrap.Modal(document.getElementById('imagePreviewModal'));
+        modal.show();
+    }
+
+    // 删除当前图片
+    function deleteCurrentImage() {
+        if (!confirm("确定要删除这张照片吗？")) return;
+
+        fetch(`/api/images/${window.currentImageId}`, { method: 'DELETE' })
+            .then(res => res.json())
+            .then(data => {
+                if (data.code === 200) {
+                    alert("删除成功！");
+                    // 关掉弹窗
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('imagePreviewModal'));
+                    modal.hide();
+                    // 刷新当前页面列表
+                    loadPhotos(currentPage);
+                } else {
+                    alert("删除失败：" + data.msg);
+                }
+            });
+    }
+</script>
+
+<!-- 预览大图的弹窗 -->
+<div class="modal fade" id="imagePreviewModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content bg-dark text-white">
+            <div class="modal-header border-0">
+                <h5 class="modal-title" id="previewTitle">查看原图</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img id="previewImage" src="" class="img-fluid" style="max-height: 70vh;">
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-danger" onclick="deleteCurrentImage()">删除这张图片</button>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
