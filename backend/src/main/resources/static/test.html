@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>浏览器直连测试</title>
+</head>
+<body>
+<h2>相册系统接口测试</h2>
+<button onclick="login()">1. 点我测试登录</button>
+<br><br>
+<button onclick="createAlbum()">2. 点我新建相册</button>
+
+<script>
+    // 登录测试 (加上了 /api)
+    function login() {
+        fetch('/api/user/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: 'testuser', password: '123456' })
+        }).then(res => res.json()).then(data => {
+            console.log('登录结果:', data);
+            alert('登录请求已发送！去控制台看结果。');
+        });
+    }
+
+    // 新建相册测试 (加上了 /api)
+    function createAlbum() {
+        fetch('/api/albums', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: '我的第一个相册', description: '毕业旅行' })
+        }).then(res => res.json()).then(data => {
+            console.log('新建结果:', data);
+            alert('新建请求已发送！请查看控制台。');
+        });
+    }
+</script>
+</body>
+</html>

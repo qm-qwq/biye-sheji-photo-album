@@ -2,6 +2,10 @@ server:
   port: 8080
   servlet:
     context-path: /api
+#    session:
+#      cookie:
+#        same-site: none   # 允许跨站携带 Cookie
+#        secure: false     # 因为是本地测试的 http，所以要设为 false
 
 spring:
   datasource:

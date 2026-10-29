@@ -9,6 +9,11 @@ import javax.servlet.http.HttpSession;
 public class LoginInterceptor implements HandlerInterceptor {
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+        // 如果是浏览器的 OPTIONS 预检请求，直接放行
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            return true;
+        }
+
         HttpSession session = request.getSession();
         Object loginUser = session.getAttribute("loginUser");
 

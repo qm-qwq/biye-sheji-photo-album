@@ -15,7 +15,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(new LoginInterceptor())
                 .addPathPatterns("/**")
-                .excludePathPatterns("/user/register", "/user/login");
+                .excludePathPatterns("/user/register", "/user/login", "/test.html", "/*.html", "/*.css", "/*.js");
     }
 
     // 解决跨域问题（新加的）
