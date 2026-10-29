@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>图片上传测试</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="p-5">
+<h3>图片上传测试</h3>
+<hr>
+
+<!-- 选择文件 -->
+<div class="mb-3">
+    <label class="form-label">选择本地图片：</label>
+    <input type="file" id="imageFile" class="form-control">
+</div>
+
+<!-- 输入相册ID (假设你要传到ID为1的相册) -->
+<div class="mb-3">
+    <label class="form-label">目标相册ID：</label>
+    <input type="number" id="albumId" class="form-control" value="1">
+</div>
+
+<button onclick="doUpload()" class="btn btn-primary">开始上传</button>
+
+<div id="result" class="mt-3 text-success fw-bold"></div>
+
+<script>
+    function doUpload() {
+        const fileInput = document.getElementById('imageFile');
+        const file = fileInput.files[0];
+        const albumId = document.getElementById('albumId').value;
+        const resultDiv = document.getElementById('result');
+
+        if (!file) {
+            alert("请先选择一张图片！");
+            return;
+        }
+
+        // 使用 FormData 包装文件和参数
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('albumId', albumId);
+
+        resultDiv.innerText = "正在上传中...";
+
+        // 发送 POST 请求
+        fetch('/api/images/upload', {
+            method: 'POST',
+            body: formData  // 注意：这里千万不要设置 Content-Type，浏览器会自动加上 boundary
+        })
+        .then(res => res.json())
+        .then(data => {
+            console.log("后端返回:", data);
+            if (data.code === 200) {
+                resultDiv.innerText = "✅ 上传成功！文件名：" + data.data.originalName + "，存入路径：" + data.data.filePath;
+            } else {
+                resultDiv.innerText = "❌ 上传失败：" + data.msg;
+                resultDiv.className = "mt-3 text-danger fw-bold";
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            resultDiv.innerText = "❌ 请求出错，请检查后端控制台";
+        });
+    }
+</script>
+</body>
+</html>

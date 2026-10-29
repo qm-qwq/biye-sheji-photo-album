@@ -35,5 +35,20 @@
         });
     }
 </script>
+<input type="file" id="testFile" />
+<button onclick="uploadTest()">上传图片</button>
+<script>
+    function uploadTest() {
+        const file = document.getElementById('testFile').files[0];
+        if (!file) return alert("先选文件");
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('albumId', 1); // 假设你要传到 id 为 1 的相册
+
+        fetch('/api/images/upload', { method: 'POST', body: formData })
+            .then(res => res.json())
+            .then(data => console.log('上传结果:', data));
+    }
+</script>
 </body>
 </html>
