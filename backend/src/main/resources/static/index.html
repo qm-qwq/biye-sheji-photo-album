@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>我的相册</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+
+<!-- 顶部导航栏 -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
+        <a class="navbar-brand" href="#">我的相册系统</a>
+        <div class="d-flex">
+            <span class="navbar-text me-3" id="userInfo"></span>
+            <button class="btn btn-outline-light btn-sm" onclick="logout()">退出登录</button>
+        </div>
+    </div>
+</nav>
+
+<!-- 主要内容区域 -->
+<div class="container mt-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4>我的相册</h4>
+        <button class="btn btn-success" onclick="alert('新建相册功能将在D7完成')">+ 新建相册</button>
+    </div>
+
+    <!-- 相册列表容器 -->
+    <div class="row" id="albumList">
+        <!-- 数据将通过 JS 动态渲染到这里 -->
+    </div>
+
+    <!-- 空状态提示（默认隐藏） -->
+    <div id="emptyState" class="text-center mt-5 text-muted" style="display: none;">
+        <h5>空空如也，快去新建一个相册吧！</h5>
+    </div>
+</div>
+
+<script>
+    // 页面加载时立即执行
+    window.onload = function() {
+        loadAlbums();
+    };
+
+    function loadAlbums() {
+        // 向后端请求相册列表
+        fetch('/api/albums')
+            .then(res => {
+                // 如果拦截器返回了 401，说明没登录，踢回登录页
+                if (res.status === 401) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+                return res.json();
+            })
+            .then(data => {
+                if (!data) return;
+
+                const listContainer = document.getElementById('albumList');
+                const emptyState = document.getElementById('emptyState');
+                listContainer.innerHTML = ''; // 清空原有内容
+
+                if (data.code === 200 && data.data.length > 0) {
+                    // 有数据，渲染卡片
+                    data.data.forEach(album => {
+                        const card = `
+                            <div class="col-md-3 mb-4">
+                                <div class="card h-100 shadow-sm">
+                                    <div class="card-body">
+                                        <h5 class="card-title">${album.name}</h5>
+                                        <p class="card-text text-muted">${album.description || '暂无描述'}</p>
+                                        <p class="card-text"><small class="text-muted">共 ${album.imageCount} 张照片</small></p>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        listContainer.innerHTML += card;
+                    });
+                } else {
+                    // 没数据，显示空状态
+                    emptyState.style.display = 'block';
+                }
+            })
+            .catch(err => console.error("加载失败", err));
+    }
+
+    function logout() {
+        fetch('/api/user/logout', { method: 'POST' })
+            .then(() => {
+                window.location.href = 'login.html';
+            });
+    }
+</script>
+</body>
+</html>
