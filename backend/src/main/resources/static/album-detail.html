@@ -28,7 +28,11 @@
 </nav>
 
 <div class="container">
-    <h3 class="mb-4">相册内的照片</h3>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3>相册内的照片</h3>
+        <!-- 新增的上传按钮 -->
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#uploadImageModal">+ 上传图片</button>
+    </div>
 
     <!-- 照片墙容器 -->
     <div class="row" id="photoList">
@@ -71,7 +75,10 @@
                 return res.json();
             })
             .then(data => {
-                if (!data || data.code !== 200) return;
+                if (!data || data.code !== 200) {
+                    alert("获取数据失败：" + (data ? data.msg : "未知错误"));
+                    return;
+                }
 
                 const photoList = document.getElementById('photoList');
                 const emptyState = document.getElementById('emptyState');
@@ -79,46 +86,23 @@
 
                 const records = data.data.records;
 
-                if (records.length === 0) {
+              if (!records || records.length === 0) {
                     emptyState.style.display = 'block';
                 } else {
                     emptyState.style.display = 'none';
 
-                    // 循环渲染图片
+                                        // 循环渲染图片
                     records.forEach(image => {
-                        // 把后端的 D:\biyesheji\... 转成 URL 能访问的 /api/uploads/...
-                        // 假设后端路径是 D:/biyesheji/uploads/1/2026/10/xxx.jpg
-                        // 截取 uploads 后面的部分
-                        let path = image.thumbPath.replace(/\\/g, '/');
-                        let index = path.indexOf('uploads');
-                        let thumbUrl = '/api/' + path.substring(index);
-                        //放大图片
-                            let filePath = image.filePath.replace(/\\/g, '/');
-                            let fileIndex = filePath.indexOf('uploads');
-                            let fileUrl = '/api/' + filePath.substring(fileIndex);
-                        const imgHtml = `
-                        <div class="col-6 col-md-4 col-lg-3 mb-4">
-                            <img src="${thumbUrl}" onclick="openPreview('${fileUrl}', ${image.id})" style="cursor: pointer;" class="photo-card shadow-sm" alt="图片">
-                            </div>
-                             `;
-                            photoList.innerHTML += imgHtml;
-                           });
-
-
-                          let currentDeleteId = null; // 记录当前要删除的图片ID
-
-                    records.forEach(image => {
-                        // 1. 处理缩略图路径
+                        // 安全处理缩略图路径
                         let thumbPath = image.thumbPath ? image.thumbPath.replace(/\\/g, '/') : '';
-                        let thumbUrl = '/api/' + thumbPath.substring(thumbPath.indexOf('uploads'));
+                        let thumbUrl = thumbPath ? '/api/' + thumbPath.substring(thumbPath.indexOf('uploads')) : '';
 
-                        // 2. 处理原图路径 (大图)
+                        // 安全处理大图路径
                         let filePath = image.filePath ? image.filePath.replace(/\\/g, '/') : '';
-                        let fileUrl = '/api/' + filePath.substring(filePath.indexOf('uploads'));
+                        let fileUrl = filePath ? '/api/' + filePath.substring(filePath.indexOf('uploads')) : '';
 
                         const imgHtml = `
                             <div class="col-6 col-md-4 col-lg-3 mb-4">
-                                <!-- 点击图片时，把原图URL传给 openPreview 函数 -->
                                 <img src="${thumbUrl}" class="photo-card shadow-sm" alt="图片"
                                      onclick="openPreview('${fileUrl}', ${image.id})">
                             </div>
@@ -129,9 +113,9 @@
 
                 // 渲染分页按钮
                 renderPagination(data.data.current, data.data.pages);
-            });
+            })
+            .catch(err => console.error("请求出错:", err));
     }
-
     // 渲染分页按钮
     function renderPagination(current, totalPages) {
         const pagination = document.getElementById('pagination');
@@ -182,6 +166,51 @@
                 }
             });
     }
+        // 提交上传图片
+    function submitUploadImage() {
+        const fileInput = document.getElementById('uploadFileInput');
+        const file = fileInput.files[0];
+        const btn = document.getElementById('uploadBtn');
+
+        if (!file) return alert("请先选择一张图片！");
+
+        // 构建 FormData
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('albumId', albumId); // albumId 是页面加载时获取的全局变量
+
+        // 改变按钮状态，防止重复提交
+        btn.innerText = "上传中...";
+        btn.disabled = true;
+
+        fetch('/api/images/upload', {
+            method: 'POST',
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            btn.innerText = "开始上传";
+            btn.disabled = false;
+
+            if (data.code === 200) {
+                // 关闭弹窗
+                const modal = bootstrap.Modal.getInstance(document.getElementById('uploadImageModal'));
+                modal.hide();
+                // 清空文件
+                fileInput.value = '';
+                // 重新加载当前页照片
+                loadPhotos(1); // 重新加载第一页（最新的图在最前面）
+            } else {
+                alert("上传失败：" + data.msg);
+            }
+        })
+        .catch(err => {
+            btn.innerText = "开始上传";
+            btn.disabled = false;
+            console.error(err);
+            alert("网络错误，请检查控制台");
+        });
+    }
 </script>
 
 <!-- 预览大图的弹窗 -->
@@ -197,6 +226,27 @@
             </div>
             <div class="modal-footer border-0">
                 <button type="button" class="btn btn-danger" onclick="deleteCurrentImage()">删除这张图片</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- 上传图片的弹窗 -->
+<div class="modal fade" id="uploadImageModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">上传图片</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">选择本地图片</label>
+                    <input type="file" class="form-control" id="uploadFileInput">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="uploadBtn" onclick="submitUploadImage()">开始上传</button>
             </div>
         </div>
     </div>
