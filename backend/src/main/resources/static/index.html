@@ -36,6 +36,7 @@
         <h5>空空如也，快去新建一个相册吧！</h5>
     </div>
 </div>
+
 <!--Bootstrap前端页面-->
 <!-- 新建相册的弹窗 -->
 <div class="modal fade" id="createAlbumModal" tabindex="-1">
@@ -62,12 +63,14 @@
         </div>
     </div>
 </div>
+
 <script>
     // 页面加载时立即执行
     window.onload = function() {
         loadAlbums();
     };
-        function submitCreateAlbum() {
+
+    function submitCreateAlbum() {
         const name = document.getElementById('newAlbumName').value;
         const desc = document.getElementById('newAlbumDesc').value;
 
@@ -114,26 +117,48 @@
                 if (data.code === 200 && data.data.length > 0) {
                     // 有数据，渲染卡片
                     data.data.forEach(album => {
-                           const card = `
+                        const card = `
                             <div class="col-md-3 mb-4">
-                                <!--点击跳转-->
-                                <div class="card h-100 shadow-sm" style="cursor: pointer;" onclick="window.location.href='album-detail.html?albumId=${album.id}'">
+                                <div class="card h-100 shadow-sm">
                                     <div class="card-body">
                                         <h5 class="card-title">${album.name}</h5>
                                         <p class="card-text text-muted">${album.description || '暂无描述'}</p>
                                         <p class="card-text"><small class="text-muted">共 ${album.imageCount} 张照片</small></p>
                                     </div>
+                                    <div class="card-footer bg-white border-0 d-flex justify-content-between">
+                                        <!-- 进入相册按钮 (点击卡片本身也可以进，但加个按钮更多此一举了嘻嘻，留着吧不删了) -->
+                                        <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='album-detail.html?albumId=${album.id}'">进入相册</button>
+                                        <!-- 删除相册按钮，记得传参时用 event.stopPropagation() 防止触发外层的跳转 -->
+                                        <button class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation(); deleteAlbum(${album.id})">删除</button>
+                                    </div>
                                 </div>
                             </div>
                         `;
+                        // 👇 这是刚才漏掉的最关键的一句，把卡片加到页面里
                         listContainer.innerHTML += card;
-                    });
+                    }); // 👈 这是闭合 forEach 的括号
                 } else {
                     // 没数据，显示空状态
                     emptyState.style.display = 'block';
                 }
-            })
+            }) // 👈 这是闭合 fetch .then 的括号
             .catch(err => console.error("加载失败", err));
+    } // 👈 这是闭合 loadAlbums 函数的括号
+
+//删除相册的JS函数
+    function deleteAlbum(id) {
+        if (!confirm("确定要删除这个相册吗？里面的照片也会一并隐藏哦。")) return;
+
+        fetch(`/api/albums/${id}`, { method: 'DELETE' })
+            .then(res => res.json())
+            .then(data => {
+                if (data.code === 200) {
+                    // 删除成功，重新加载相册列表
+                    loadAlbums();
+                } else {
+                    alert("删除失败：" + data.msg);
+                }
+            });
     }
 
     function logout() {
