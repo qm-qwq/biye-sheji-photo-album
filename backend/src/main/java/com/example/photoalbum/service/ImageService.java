@@ -27,6 +27,7 @@ public class ImageService {
     private ImageMapper imageMapper;
     @Autowired
     private AlbumMapper albumMapper;
+    //因为图片涉及俩所以都喊上
 
     @Value("${upload.path:D:/biyesheji/uploads/}")
     private String uploadPath;
@@ -51,12 +52,13 @@ public class ImageService {
         String datePath = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy/MM"));
         String dirPath = uploadPath + userId + "/" + datePath + "/";
         File dir = new File(dirPath);
-        if (!dir.exists()) dir.mkdirs();
+        if (!dir.exists()) dir.mkdirs();//如果路径不存在自动创建
 
         // 生成文件名
-        String newFileName = UUID.randomUUID().toString().replace("-", "") + "." + extension;
+        String newFileName = UUID.randomUUID().toString().replace("-", "") + "." + extension;//防止俩用户图片重名覆盖
         File destFile = new File(dirPath + newFileName);
 
+        //生成缩略图:
         String thumbName = "thumb_" + newFileName;
         File thumbFile = new File(dirPath + thumbName);
 
@@ -85,7 +87,7 @@ public class ImageService {
         image.setContentType(file.getContentType());
         image.setCreatedTime(LocalDateTime.now());
         image.setUpdatedTime(LocalDateTime.now());
-        imageMapper.insert(image);
+        imageMapper.insert(image);//存入，Mybatis-Plus的好处
 
         // 更新相册图片数量
         album.setImageCount(album.getImageCount() + 1);
@@ -126,7 +128,7 @@ public class ImageService {
             if (image.getFilePath() != null) new File(image.getFilePath()).delete();
             if (image.getThumbPath() != null) new File(image.getThumbPath()).delete();
         } catch (Exception e) {
-            System.out.println("删除本地文件失败，但不影响数据库记录删除");
+            System.out.println("删除本地文件失败，但不影响数据库记录删除");//删了数据库顺便把实体文件也删除
         }
 
         // 相册图片数量 - 1

@@ -6,4 +6,4 @@ import org.apache.ibatis.annotations.Mapper;
 
 @Mapper
 public interface AlbumMapper extends BaseMapper<Album> {
-}
+}//通过mybatis-plus 来实现数据库的增删改查

@@ -8,9 +8,9 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 @Data
-@TableName("image")
+@TableName("image")//告诉表名
 public class Image {
-    @TableId(type = IdType.AUTO)
+    @TableId(type = IdType.AUTO)//主键 自增
     private Long id;
     private Long albumId;
     private Long userId;
@@ -28,7 +28,7 @@ public class Image {
     private Integer iso;
     private Integer orientation;
 
-    @TableLogic
+    @TableLogic //逻辑删除  记录时间
     private Integer isDeleted;
     private LocalDateTime createdTime;
     private LocalDateTime updatedTime;

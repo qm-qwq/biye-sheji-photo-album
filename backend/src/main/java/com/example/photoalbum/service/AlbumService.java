@@ -13,23 +13,23 @@ import java.util.List;
 @Service
 public class AlbumService {
 
-    @Autowired
+    @Autowired //依赖注入 要一个mapper干活
     private AlbumMapper albumMapper;
 
     // 1. 新增相册
     public Result<?> createAlbum(Album album, Long userId) {
-        album.setUserId(userId);
-        album.setImageCount(0);
-        album.setCreatedTime(LocalDateTime.now());
+        album.setUserId(userId);//强行覆盖前端的userId 防止越权
+        album.setImageCount(0);//新建相册图片数量默认0
+        album.setCreatedTime(LocalDateTime.now());//记录时间
         album.setUpdatedTime(LocalDateTime.now());
-        albumMapper.insert(album);
+        albumMapper.insert(album);//让mapper放数据库 返回成功信号给前端
         return Result.success(album);
     }
 
     // 2. 查询我的相册列表
     public Result<List<Album>> getMyAlbums(Long userId) {
         LambdaQueryWrapper<Album> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(Album::getUserId, userId).orderByDesc(Album::getCreatedTime);
+        wrapper.eq(Album::getUserId, userId).orderByDesc(Album::getCreatedTime);//规矩 userid必须等于用户 由新到旧排序
         List<Album> list = albumMapper.selectList(wrapper);
         return Result.success(list);
     }

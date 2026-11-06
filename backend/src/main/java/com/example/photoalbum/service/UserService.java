@@ -18,7 +18,7 @@ public class UserService {
     @Autowired
     private UserMapper userMapper;
     // new 一个加密工具
-    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();//加密
 
     // 直接写方法
     //登录
@@ -43,11 +43,11 @@ public class UserService {
         wrapper.eq(User::getUsername, loginDTO.getUsername());
         User user = userMapper.selectOne(wrapper);
 
-        if (user == null || !passwordEncoder.matches(loginDTO.getPassword(), user.getPassword())) {
+        if (user == null || !passwordEncoder.matches(loginDTO.getPassword(), user.getPassword())) {//matches对比密码《加密识别）
             return Result.error("用户名或密码错误");
         }
-        // 登录成功，把用户信息存入 Session（非常重要 就是你登录的凭证）
-        user.setPassword(null);
+        // 登录成功，把用户信息存入 Session（非常重要 就是登录的凭证）
+        user.setPassword(null);//能把user对象返回前端 但是不把密码暴露给浏览器
         session.setAttribute("loginUser", user);
         return Result.success(user);
     }

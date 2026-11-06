@@ -11,15 +11,15 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 public class WebMvcConfig implements WebMvcConfigurer {
 
-    @Value("${upload.path:D:/biyesheji/uploads/}")
+    @Value("${upload.path:D:/biyesheji/uploads/}")//硬编码解耦器
     private String uploadPath;
     // 注册拦截器
-    @Override
+    @Override//防错标签
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(new LoginInterceptor())
-                .addPathPatterns("/**")
-                .excludePathPatterns("/user/register", "/user/login", "/test.html", "/*.html", "/*.css", "/*.js", "/uploads/**");
-    }
+                .addPathPatterns("/**") //拦截
+                .excludePathPatterns("/user/register", "/user/login", "/test.html", "/*.html", "/*.css", "/*.js", "/uploads/**");//放行
+    }//拦截器 没登录不让进
 //
 //    // 解决跨域问题（新加的）
 //    @Override
@@ -32,8 +32,9 @@ public class WebMvcConfig implements WebMvcConfigurer {
 //                .maxAge(3600);
 //    }
     @Override
+    //静态资源映射
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         registry.addResourceHandler("/uploads/**")
-                .addResourceLocations("file:" + uploadPath);
+                .addResourceLocations("file:" + uploadPath);//找文件返回前端
     }
 }

@@ -3,17 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <title>相册详情</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">//样式
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>//弹窗放大
     <style>
         /* 设置图片卡片的样式，保持正方形 */
         .photo-card {
             aspect-ratio: 1 / 1;
-            object-fit: cover;
+            object-fit: cover;//裁剪不留白
             width: 100%;
             border-radius: 8px;
             cursor: pointer;
-            transition: transform 0.2s;
+            transition: transform 0.2s;//动画过渡
         }
         .photo-card:hover { transform: scale(1.05); }
     </style>
@@ -253,3 +253,4 @@
 </div>
 </body>
 </html>
+//相册详情页 主要是弄前端页面的 看图点图 上传 删除

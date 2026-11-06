@@ -1,4 +1,4 @@
-//实现HandlerInterceptor
+//实现HandlerInterceptor登录拦截器
 package com.example.photoalbum.interceptor;
 
 import org.springframework.web.servlet.HandlerInterceptor;
@@ -6,10 +6,10 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
-public class LoginInterceptor implements HandlerInterceptor {
+public class LoginInterceptor implements HandlerInterceptor {//实现sprig mvc拦截器接口
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-        // 如果是浏览器的 OPTIONS 预检请求，直接放行
+        // 如果是浏览器的 OPTIONS 预检请求，直接放行（特殊放行 防止跨域问题
         if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
             return true;
         }

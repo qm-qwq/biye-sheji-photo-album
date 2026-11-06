@@ -6,11 +6,11 @@ import com.baomidou.mybatisplus.extension.plugins.inner.PaginationInnerIntercept
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-@Configuration
+@Configuration//告诉springboot是配置类
 public class MybatisPlusConfig {
 
-    @Bean
-    public MybatisPlusInterceptor mybatisPlusInterceptor() {
+    @Bean//返回的对象给sping容器处理
+    public MybatisPlusInterceptor mybatisPlusInterceptor() {//拦截器 拦截sql数据然后正确填入
         MybatisPlusInterceptor interceptor = new MybatisPlusInterceptor();
         // 添加分页插件，并指定数据库类型为 MySQL
         interceptor.addInnerInterceptor(new PaginationInnerInterceptor(DbType.MYSQL));

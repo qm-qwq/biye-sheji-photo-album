@@ -15,7 +15,7 @@ import java.util.List;
 public class AlbumController {
 
     @Autowired
-    private AlbumService albumService; // 👈 注入逻辑层
+    private AlbumService albumService; // 注入逻辑层
 
     // 辅助方法：从 Session 获取当前登录用户 ID
     private Long getCurrentUserId(HttpSession session) {
